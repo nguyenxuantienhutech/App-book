@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Book-app</string>
+    <string name="no_acc_signup">You no have account? <b>SignUp Now</b></string>
+
+</resources>
