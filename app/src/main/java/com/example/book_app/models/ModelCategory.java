@@ -1,4 +1,4 @@
-package com.example.book_app;
+package com.example.book_app.models;
 
 import android.view.Display;
 

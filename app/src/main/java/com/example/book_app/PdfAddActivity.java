@@ -32,13 +32,12 @@ import com.google.firebase.storage.UploadTask;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Locale;
 
 public class PdfAddActivity extends AppCompatActivity {
     private ActivityPdfAddBinding binding;
     private FirebaseAuth firebaseAuth;
     private Uri uriPdf = null;
-    private ArrayList<ModelCategory> categoryList;
+    private ArrayList<String> categoryTitleList, categoryIdList;
     private static final String TAG = "ADD_PDF_TAG";
     private static final int PDF_PICK_CODE = 1000;
     private ProgressDialog progressDialog;
@@ -85,16 +84,15 @@ public class PdfAddActivity extends AppCompatActivity {
             }
         });
     }
-    private  String title = "", description ="", category = "";
+    private  String title = "", description ="";
     private void validateData() {
         //step 1: validate
         Log.d(TAG, "validateData: validating data...");
         //get data
         title = binding.titleEt.getText().toString().trim();
         description = binding.descriptionEt.getText().toString().trim();
-        category = binding.categoryTv.getText().toString().trim();
         //validate
-        if (TextUtils.isEmpty(title) || TextUtils.isEmpty(description) || TextUtils.isEmpty(category) || uriPdf == null){
+        if (TextUtils.isEmpty(title) || TextUtils.isEmpty(description) || TextUtils.isEmpty(selectedCategoryTitle) || uriPdf == null){
             Toast.makeText(this, "Please do not to empty", Toast.LENGTH_SHORT).show();
         }
         else{
@@ -120,11 +118,6 @@ public class PdfAddActivity extends AppCompatActivity {
                 Log.d(TAG, "onSuccess: getting pdf url");
                 //get url
                 Task<Uri> uriTask = taskSnapshot.getStorage().getDownloadUrl();
-//                while(!uriTask.isSuccessful()){
-//                    String uploadPdfUrl = ""+uriTask.getResult();
-//                    //upload to firebase db
-//                    uploadInfoToDb(uploadPdfUrl,timestamp);
-//                }
                 uriTask.addOnCompleteListener(new OnCompleteListener<Uri>() {
                     @Override
                     public void onComplete(@NonNull Task<Uri> task) {
@@ -161,7 +154,7 @@ public class PdfAddActivity extends AppCompatActivity {
         hashMap.put("id", ""+timestamp);
         hashMap.put("title", ""+title);
         hashMap.put("description", ""+description);
-        hashMap.put("category", ""+category);
+        hashMap.put("categoryId", ""+selectedCategoryId);
         hashMap.put("url", ""+uploadPdfUrl);
         hashMap.put("timestamp", timestamp);
         //db
@@ -185,18 +178,26 @@ public class PdfAddActivity extends AppCompatActivity {
 
     private void loadCategories() {
         Log.d(TAG, "loadCategories: Loading pdf category");
-        categoryList = new ArrayList<>();
+        categoryTitleList = new ArrayList<>();
+        categoryIdList = new ArrayList<>();
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference("Categories");
         ref.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                categoryList.clear();
+                categoryTitleList.clear();
+                categoryIdList.clear();
                 for(DataSnapshot ds : snapshot.getChildren()){
-                    //get data
-                    ModelCategory model = ds.getValue(ModelCategory.class);
-                    //add to list
-                    categoryList.add(model);
-                    Log.d(TAG, "onDataChange: "+model.getCategory());
+//                    //get data
+//                    ModelCategory model = ds.getValue(ModelCategory.class);
+//                    //add to list
+//                    categoryTitleList.add(model);
+//                    Log.d(TAG, "onDataChange: "+model.getCategory());
+                    //get id and title cate
+                    String categoryId = ""+ds.child("id").getValue();
+                    String categoryTitle = ""+ds.child("category").getValue();
+                    //add to respective arraylist
+                    categoryTitleList.add(categoryTitle);
+                    categoryIdList.add(categoryId);
                 }
             }
 
@@ -207,14 +208,15 @@ public class PdfAddActivity extends AppCompatActivity {
         });
 
     }
-
+    //select category id and title
+    private String selectedCategoryId,selectedCategoryTitle;
     private void categoryPickDialog() {
         //load category from firebase
         Log.d(TAG, "categoryPickDialog: showing category pdf");
         //get String array cate from array list
-        String [] categoriesArray = new String[categoryList.size()];
-        for (int i = 0; i < categoryList.size(); i++){
-            categoriesArray[i] = categoryList.get(i).getCategory();
+        String [] categoriesArray = new String[categoryTitleList.size()];
+        for (int i = 0; i < categoryTitleList.size(); i++){
+            categoriesArray[i] = categoryTitleList.get(i);
         }
         //alert dialog
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -223,10 +225,11 @@ public class PdfAddActivity extends AppCompatActivity {
             public void onClick(DialogInterface dialog, int which) {
                 //handle item click
                 //get clicked item from list
-                String category = categoriesArray[which];
+                selectedCategoryTitle = categoryTitleList.get(which);
+                selectedCategoryId = categoryIdList.get(which);
                 //set category to text view
-                binding.categoryTv.setText(category);
-                Log.d(TAG, "onClick: Selected category: "+ category);
+                binding.categoryTv.setText(selectedCategoryTitle);
+                Log.d(TAG, "onClick: Selected category: "+ selectedCategoryId+""+selectedCategoryTitle);
             }
         }).show();
     }
